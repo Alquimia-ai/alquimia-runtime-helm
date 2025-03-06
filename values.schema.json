@@ -1,0 +1,27 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Alquimia Runtime Chart",
+    "type": "object",
+    "properties": {
+      "services": {
+        "type": "object",
+        "properties": {
+          "hermes": {
+            "type": "object",
+            "properties": {
+              "image": { "type": "string", "minLength": 1 }
+            },
+            "required": ["image"]
+          },
+          "leviathan": {
+            "type": "object",
+            "properties": {
+              "image": { "type": "string", "minLength": 1 }
+            },
+            "required": ["image"]
+          }
+        }
+      }
+    }
+  }
+  

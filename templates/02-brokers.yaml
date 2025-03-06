@@ -1,0 +1,22 @@
+{{- range .Values.eventing.brokers }}
+---
+apiVersion: eventing.knative.dev/v1
+kind: Broker
+metadata:
+  annotations:
+    eventing.knative.dev/broker.class: Kafka
+  name: {{ .name }}
+spec:
+  config:
+    apiVersion: v1
+    kind: ConfigMap
+    name: {{ $.Values.eventing.configBroker.name }}
+    namespace: {{ $.Values.eventing.configBroker.namespace }}
+  delivery:
+    deadLetterSink:
+      ref:
+        apiVersion: serving.knative.dev/v1
+        kind: Service
+        name: {{ .serviceRef }}
+      uri: "/event/dispatch"
+{{- end }}

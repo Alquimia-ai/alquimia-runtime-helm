@@ -1,0 +1,128 @@
+
+eventing:
+  sequences:
+    - name: leviathan-empathy-sequence
+      steps:
+        - service: alquimia-leviathan
+          uri: "/leviathan/wait-for-it"
+        - service: alquimia-leviathan
+          uri: "/leviathan/empathy"
+      reply:
+        kind: Broker
+        apiVersion: eventing.knative.dev/v1
+        name: outbound
+    - name: dante-chat-sequence
+      steps:
+        - service: alquimia-leviathan
+          uri: "/dante/stream"
+        - service: alquimia-leviathan
+          uri: "/memory/add"
+    - name: leviathan-normalization-sequence
+      steps:
+        - service: alquimia-leviathan
+          uri: "/memory/get"
+      reply:
+        kind: Broker
+        apiVersion: eventing.knative.dev/v1
+        name: normalized
+  triggers:
+    - name: leviathan-tool-completition-empathy-trigger
+      broker: inbound
+      filter:
+        attributes:
+          type: alquimia.hermes.ToolCompletition
+      subscriber:
+        apiVersion: flows.knative.dev/v1
+        kind: Sequence
+        name: leviathan-empathy-sequence
+    - name: leviathan-normalization-trigger
+      broker: inbound
+      filter:
+        attributes:
+          dtype: text
+      subscriber:
+        apiVersion: flows.knative.dev/v1
+        kind: Sequence
+        name: leviathan-normalization-sequence
+    - name: leviathan-classified-empathy-trigger
+      broker: classified
+      subscriber:
+        apiVersion: flows.knative.dev/v1
+        kind: Sequence
+        name: leviathan-empathy-sequence
+    - name: dante-chat-sequence-trigger
+      broker: outbound
+      filter:
+        attributes:
+          type: alquimia.hermes.Inference
+          source: chat
+      subscriber:
+        apiVersion: flows.knative.dev/v1
+        kind: Sequence
+        name: dante-chat-sequence
+  brokers:
+    - name: inbound
+      serviceRef: alquimia-hermes
+    - name: normalized
+      serviceRef: alquimia-hermes
+    - name: classified
+      serviceRef: alquimia-hermes
+    - name: outbound
+      serviceRef: alquimia-hermes
+  configBroker:
+    name: kafka-broker-config
+    namespace: knative-eventing
+  sinkBindings:
+    - name: leviathan-dispatcher-sink
+      subject:
+        kind: Service
+        apiVersion: serving.knative.dev/v1
+        name: alquimia-leviathan
+      sink:
+        kind: Service
+        apiVersion: serving.knative.dev/v1
+        name: alquimia-hermes
+        uri: "/event/dispatch"
+    - name: hermes-inbound-sink
+      subject:
+        kind: Service
+        apiVersion: serving.knative.dev/v1
+        name: alquimia-hermes
+      sink:
+        kind: Broker
+        apiVersion: eventing.knative.dev/v1
+        name: inbound
+services:
+  hermes:
+    name: "alquimia-hermes"
+    image: ""
+  leviathan: 
+    name: "alquimia-leviathan"
+    image: ""
+configuration:
+  name: alquimia-env
+  namespace: alquimia-runtime
+  env:
+    HF_HOME: ""
+    QDRANT_API_KEY: ""
+    SENTENCE_TRANSFORMERS_HOME: ""
+    API_URL: ""
+    APM_SECRET_TOKEN: ""
+    REDIS_URL: ""
+    ALQUIMIA_S3_ACCESS_KEY_ID: ""
+    SMTP_SERVER: ""
+    ALQUIMIA_CACHE: ""
+    IMAP_SERVER: ""
+    ALQUIMIA_S3_ENDPOINT_URL: ""
+    SLACK_BOT_TOKEN: ""
+    DEBUG: ""
+    APM_SERVER_URL: ""
+    API_TOKEN: ""
+    ALQUIMIA_S3_BUCKET: ""
+    GMAIL_USERNAME: ""
+    QDRANT_URL: ""
+    ALQUIMIA_S3_SECRET_KEY: ""
+    COUCHDB_URL: ""
+    GMAIL_PASSWORD: ""
+    TRANSFORMERS_CACHE: ""
+    DEFAULT_COLLECTION_ID: ""
