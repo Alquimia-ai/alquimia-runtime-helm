@@ -2,8 +2,9 @@
 
 This Helm chart deploys the **Alquimia Runtime** application, including its event-driven components using **Knative Eventing** and **Knative Serving**.  
 
-## **prerequisites**
+## **Prerequisites**
 Istio Mesh
+
 Knative(Serving, Eventing y Kafka)
 
 ## **📌 Installation**  
