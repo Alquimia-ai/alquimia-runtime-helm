@@ -9,14 +9,14 @@
           "hermes": {
             "type": "object",
             "properties": {
-              "image": { "type": "string", "minLength": 1 }
+              "image": { "type": "string" }
             },
             "required": ["image"]
           },
           "leviathan": {
             "type": "object",
             "properties": {
-              "image": { "type": "string", "minLength": 1 }
+              "image": { "type": "string" }
             },
             "required": ["image"]
           }

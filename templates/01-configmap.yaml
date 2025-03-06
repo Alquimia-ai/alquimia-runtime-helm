@@ -3,6 +3,8 @@ kind: ConfigMap
 metadata:
   name: {{ .Values.configuration.name }}
   namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/resource-policy": "keep"
 data:
   {{- range $key, $value := .Values.configuration.env }}
   {{ $key }}: {{ $value | quote }}
