@@ -1,0 +1,14 @@
+apiVersion: v1
+entries:
+  my-app-config:
+  - apiVersion: v1
+    appVersion: 0.1.0
+    created: "2025-03-12T07:37:24.206657052-04:00"
+    description: Helm chart deploys the Alquimia Runtime application, including its event-driven components using Knative Eventing and Knative Serving
+    digest: 113b4944bfc2e50f50a7866d7619d4c80f9047f85ee6118dc81e7a337bbeb156
+    name: Alquimia Runtime
+    type: application
+    urls:
+    - https://alquimia-ai.github.io/alquimia-runtime-helm/stable/alquimia-runtime-chart-0.1.0.tgz
+    version: 0.1.0
+generated: "2025-03-12T07:37:24.20617211-04:00"

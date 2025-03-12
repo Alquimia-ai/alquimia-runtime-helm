@@ -1,5 +1,0 @@
-services:
-  hermes:
-    image: "alquimiaai/hermes:latest"
-  leviathan:
-    image: "alquimiaai/leviathan:latest"
