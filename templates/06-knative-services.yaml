@@ -22,7 +22,7 @@ spec:
         sidecar.istio.io/rewriteAppHTTPProbers: "true"
     spec:
       containers:
-        - image: {{ $service.image | default "quay.io/openshift-knative/showcase"}}
+        - image: {{ $service.image }}
           name: {{ $service.name }}
           ports:
             - containerPort: 8080

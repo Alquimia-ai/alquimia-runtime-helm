@@ -95,10 +95,10 @@ eventing:
 services:
   hermes:
     name: "alquimia-hermes"
-    image: ""
+    image: "alquimiaai/hermes:latest"
   leviathan: 
     name: "alquimia-leviathan"
-    image: ""
+    image: "alquimiaai/leviathan:latest"
 configuration:
   name: alquimia-env
   namespace: alquimia-runtime
