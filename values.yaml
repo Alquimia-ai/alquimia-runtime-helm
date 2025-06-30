@@ -95,10 +95,10 @@ eventing:
 services:
   hermes:
     name: "alquimia-hermes"
-    image: "alquimiaai/hermes:latest"
+    image: "registry.connect.redhat.com/alquimiaai/leviathan:latest"
   leviathan: 
     name: "alquimia-leviathan"
-    image: "alquimiaai/leviathan:latest"
+    image: "registry.connect.redhat.com/alquimiaai/leviathan:latest"
 configuration:
   name: alquimia-env
   namespace: alquimia-runtime

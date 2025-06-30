@@ -1,10 +1,10 @@
 apiVersion: v2
-name: alquimia-runtime-chart
+name: alquimia-runtime-helm
 description: A Helm chart for Kubernetes
 icon: https://www.alquimia.ai/favicon.ico
 
 annotations:
-  charts.openshift.io/name: alquimia-runtime-chart
+  charts.openshift.io/name: alquimia-runtime-helm
   charts.openshift.io/description: "A Helm chart for OpenShift"
   charts.openshift.io/provider: "Alquimia AI"
   charts.openshift.io/supportURL: "https://www.alquimia.ai/"
