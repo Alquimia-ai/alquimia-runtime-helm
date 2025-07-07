@@ -1,11 +1,11 @@
 apiVersion: v2
 name: alquimia-runtime-helm
-description: A Helm chart for Kubernetes
+description: A Helm chart to deploy Alquimia AI Runtime components (Serving & Eventing) on OpenShift using Knative.
 icon: https://www.alquimia.ai/favicon.ico
 
 annotations:
   charts.openshift.io/name: Alquimia AI Runtime
-  charts.openshift.io/description: "A Helm chart for OpenShift"
+  charts.openshift.io/description: "A Helm chart to deploy Alquimia AI Runtime components (Serving & Eventing) on OpenShift using Knative."
   charts.openshift.io/provider: "Alquimia AI"
   charts.openshift.io/supportURL: "https://www.alquimia.ai/"
 # A chart can be either an 'application' or a 'library' chart.
