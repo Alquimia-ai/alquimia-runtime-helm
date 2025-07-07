@@ -1,22 +1,22 @@
 {{- range .Values.eventing.brokers }}
----
 apiVersion: eventing.knative.dev/v1
 kind: Broker
 metadata:
+  name: {{ .name }}
   annotations:
     eventing.knative.dev/broker.class: Kafka
-  name: {{ .name }}
 spec:
   config:
     apiVersion: v1
     kind: ConfigMap
-    name: {{ $.Values.eventing.configBroker.name }}
-    namespace: {{ $.Values.eventing.configBroker.namespace }}
+    name: kafka-broker-config
+    namespace: knative-eventing
   delivery:
     deadLetterSink:
       ref:
         apiVersion: serving.knative.dev/v1
         kind: Service
-        name: {{ .serviceRef }}
-      uri: "/event/dispatch"
+        name: alquimia-evaluator
+      uri: "{{ .deadLetterUri }}"
+---
 {{- end }}

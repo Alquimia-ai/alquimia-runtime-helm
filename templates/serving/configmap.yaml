@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alquimia-env
+data:
+  {{- range $key, $value := .Values.serving.env }}
+  {{ $key }}: "{{ $value }}"
+  {{- end }}

@@ -1,128 +1,246 @@
+serving:
+  env:
+    DEBUG: "False"
+    REDIS_PORT: ""
+    REDIS_USER: ""
+    REDIS_HOST: ""
+    REDIS_PASSWORD: ""
+    COUCHDB_URL: ""
+    ASSISTANT_COUCHDB_ID: ""
+    REDIS_URL: ""
+    QDRANT_URL: ""
+    QDRANT_API_KEY: ""
+    API_TOKEN: ""
+
+  services:
+    - name: alquimia-leviathan
+      image: alquimiaai/leviathan:latest
+      label:
+        bindings.knative.dev/include: "true"
+
+    - name: alquimia-hermes
+      image: alquimiaai/hermes:latest
+      label:
+        app: entrypoint
+
+    - name: alquimia-evaluator
+      image: alquimiaai/evaluator:latest
+
+    - name: alquimia-tools
+      image: alquimiaai/tools:latest
 
 eventing:
-  sequences:
-    - name: leviathan-empathy-sequence
-      steps:
-        - service: alquimia-leviathan
-          uri: "/leviathan/wait-for-it"
-        - service: alquimia-leviathan
-          uri: "/leviathan/empathy"
-      reply:
-        kind: Broker
-        apiVersion: eventing.knative.dev/v1
-        name: outbound
-    - name: dante-chat-sequence
-      steps:
-        - service: alquimia-leviathan
-          uri: "/dante/stream"
-        - service: alquimia-leviathan
-          uri: "/memory/add"
-    - name: leviathan-normalization-sequence
-      steps:
-        - service: alquimia-leviathan
-          uri: "/memory/get"
-      reply:
-        kind: Broker
-        apiVersion: eventing.knative.dev/v1
-        name: normalized
-  triggers:
-    - name: leviathan-tool-completition-empathy-trigger
-      broker: inbound
-      filter:
-        attributes:
-          type: alquimia.hermes.ToolCompletition
-      subscriber:
-        apiVersion: flows.knative.dev/v1
-        kind: Sequence
-        name: leviathan-empathy-sequence
-    - name: leviathan-normalization-trigger
-      broker: inbound
-      filter:
-        attributes:
-          dtype: text
-      subscriber:
-        apiVersion: flows.knative.dev/v1
-        kind: Sequence
-        name: leviathan-normalization-sequence
-    - name: leviathan-classified-empathy-trigger
-      broker: classified
-      subscriber:
-        apiVersion: flows.knative.dev/v1
-        kind: Sequence
-        name: leviathan-empathy-sequence
-    - name: dante-chat-sequence-trigger
-      broker: outbound
-      filter:
-        attributes:
-          type: alquimia.hermes.Inference
-          source: chat
-      subscriber:
-        apiVersion: flows.knative.dev/v1
-        kind: Sequence
-        name: dante-chat-sequence
   brokers:
     - name: inbound
-      serviceRef: alquimia-hermes
-    - name: normalized
-      serviceRef: alquimia-hermes
-    - name: classified
-      serviceRef: alquimia-hermes
+      deadLetterUri: /deadletter/inbound
+    - name: process
+      deadLetterUri: /deadletter/process
     - name: outbound
-      serviceRef: alquimia-hermes
-  configBroker:
-    name: kafka-broker-config
-    namespace: knative-eventing
+      deadLetterUri: /deadletter/outbound
+
   sinkBindings:
-    - name: leviathan-dispatcher-sink
-      subject:
-        kind: Service
-        apiVersion: serving.knative.dev/v1
-        name: alquimia-leviathan
-      sink:
-        kind: Service
-        apiVersion: serving.knative.dev/v1
-        name: alquimia-hermes
-        uri: "/event/dispatch"
+    - name: evaluator-process-sink
+      service: alquimia-evaluator
+      broker: process
+
     - name: hermes-inbound-sink
-      subject:
-        kind: Service
-        apiVersion: serving.knative.dev/v1
-        name: alquimia-hermes
-      sink:
-        kind: Broker
-        apiVersion: eventing.knative.dev/v1
-        name: inbound
-services:
-  hermes:
-    name: "alquimia-hermes"
-    image: "registry.connect.redhat.com/alquimiaai/leviathan:latest"
-  leviathan: 
-    name: "alquimia-leviathan"
-    image: "registry.connect.redhat.com/alquimiaai/leviathan:latest"
-configuration:
-  name: alquimia-env
-  namespace: alquimia-runtime
-  env:
-    HF_HOME: ""
-    QDRANT_API_KEY: ""
-    SENTENCE_TRANSFORMERS_HOME: ""
-    API_URL: ""
-    APM_SECRET_TOKEN: ""
-    REDIS_URL: ""
-    ALQUIMIA_S3_ACCESS_KEY_ID: ""
-    SMTP_SERVER: ""
-    ALQUIMIA_CACHE: ""
-    IMAP_SERVER: ""
-    ALQUIMIA_S3_ENDPOINT_URL: ""
-    SLACK_BOT_TOKEN: ""
-    DEBUG: ""
-    APM_SERVER_URL: ""
-    API_TOKEN: ""
-    ALQUIMIA_S3_BUCKET: ""
-    GMAIL_USERNAME: ""
-    QDRANT_URL: ""
-    ALQUIMIA_S3_SECRET_KEY: ""
-    COUCHDB_URL: ""
-    GMAIL_PASSWORD: ""
-    TRANSFORMERS_CACHE: ""
-    DEFAULT_COLLECTION_ID: ""
+      service: alquimia-hermes
+      broker: inbound
+
+    - name: leviathan-process-sink
+      service: alquimia-leviathan
+      broker: process
+
+    - name: tools-process-sink
+      service: alquimia-tools
+      broker: process
+
+  triggers:
+    - name: evaluator-tool-response-trigger
+      broker: process
+      type: alquimia.cloud.events.ToolExecutionResponse
+      service: alquimia-evaluator
+      uri: /assistant/response/tool
+
+    - name: evaluator-tool-human-approval-response-trigger
+      broker: inbound
+      type: alquimia.cloud.events.ToolRequiresHumanApprovalResponse
+      service: alquimia-evaluator
+      uri: /assistant/response/tool/approval
+
+    - name: assistant-response-outbound-passthrough-trigger
+      broker: process
+      type: alquimia.cloud.events.AssistantInferenceResponse
+      service: outbound
+      kind: Broker
+
+    - name: assistant-inference-command-trigger
+      broker: inbound
+      type: alquimia.cloud.commands.AssistantInference
+      service: assistant-inference-command-init-sequence
+      kind: Sequence
+
+    - name: tools-process-trigger
+      broker: process
+      type: alquimia.cloud.commands.ServerToolExecution
+      service: tool-execution-sequence
+      kind: Sequence
+
+    - name: tools-schema-trigger
+      broker: process
+      type: alquimia.cloud.commands.ToolSchema
+      service: tool-schema-retrieve-sequence
+      kind: Sequence
+
+    - name: leviathan-expert-inference-trigger
+      broker: process
+      type: alquimia.cloud.commands.ExpertInference
+      service: expert-inference-sequence
+      kind: Sequence
+
+    - name: leviathan-attachment-normalization-trigger
+      broker: inbound
+      type: alquimia.cloud.commands.AttachmentNormalization
+      service: attachment-normalization-sequence
+      kind: Sequence
+
+    - name: leviathan-dante-inference-trigger
+      broker: process
+      type: alquimia.cloud.commands.DanteInference
+      service: dante-inference-sequence
+      kind: Sequence
+
+    - name: a2a-inference-command-trigger
+      broker: process
+      type: alquimia.cloud.commands.A2AInference
+      service: a2a-inference-sequence
+      kind: Sequence
+
+    - name: agent-discvery-command-trigger
+      broker: process
+      type: alquimia.cloud.commands.AgentDiscovery
+      service: agent-discovery-sequence
+      kind: Sequence
+
+    - name: context-persistance-command-trigger
+      broker: process
+      type: alquimia.cloud.commands.ContextPersistance
+      service: alquimia-hermes
+      uri: /context/persist
+
+    - name: dispatch-controller-updates-trigger
+      broker: process
+      type: alquimia.cloud.events.ControllerWorklogUpdate
+      service: alquimia-hermes
+      uri: /internal/event/dispatch
+
+    - name: controller-restart-trigger
+      broker: inbound
+      type: alquimia.cloud.commands.ControllerRestart
+      service: assistant-controller-restart-sequence
+      kind: Sequence
+
+    - name: isolated-inference-trigger
+      broker: inbound
+      type: alquimia.cloud.commands.ExpertInferenceCommand
+      service: isolated-inference-sequence
+      kind: Sequence
+
+    - name: controller-state-update-trigger
+      broker: inbound
+      type: alquimia.cloud.commands.ControllerStateChange
+      service: assistant-controller-state-update-sequence
+      kind: Sequence
+
+  sequences:
+    - name: assistant-controller-state-update-sequence
+      steps:
+        - service: alquimia-evaluator
+          uri: /assistant/control/state
+      reply:
+        broker: process
+
+    - name: assistant-controller-restart-sequence
+      steps:
+        - service: alquimia-evaluator
+          uri: /assistant/control/restart
+      reply:
+        broker: process
+
+    - name: assistant-inference-command-init-sequence
+      steps:
+        - service: alquimia-evaluator
+          uri: /assistant/command
+      reply:
+        broker: process
+
+    - name: attachment-normalization-sequence
+      steps:
+        - service: alquimia-leviathan
+          uri: /api/normalize/attachment
+        - service: alquimia-evaluator
+          uri: /assistant/response/attachment
+      reply:
+        broker: process
+
+    - name: expert-inference-sequence
+      steps:
+        - service: alquimia-leviathan
+          uri: /api/expert
+        - service: alquimia-evaluator
+          uri: /assistant/response/expert
+      reply:
+        broker: process
+
+    - name: dante-inference-sequence
+      steps:
+        - service: alquimia-leviathan
+          uri: /api/dante
+        - service: alquimia-evaluator
+          uri: /assistant/response/dante
+      reply:
+        broker: process
+
+    - name: a2a-inference-sequence
+      steps:
+        - service: alquimia-hermes
+          uri: /internal/infer
+        - service: alquimia-evaluator
+          uri: /assistant/response/tool
+      reply:
+        broker: process
+
+    - name: agent-discovery-sequence
+      steps:
+        - service: alquimia-hermes
+          uri: /internal/discover
+        - service: alquimia-evaluator
+          uri: /assistant/response/agent/discovery
+      reply:
+        broker: process
+
+    - name: isolated-inference-sequence
+      steps:
+        - service: alquimia-leviathan
+          uri: /api/expert
+      reply:
+        service: alquimia-hermes
+        uri: /internal/isolated/dispatch
+
+    - name: tool-schema-retrieve-sequence
+      steps:
+        - service: alquimia-tools
+          uri: /main/schema
+        - service: alquimia-evaluator
+          uri: /assistant/response/schema
+      reply:
+        broker: process
+
+    - name: tool-execution-sequence
+      steps:
+        - service: alquimia-tools
+          uri: /main/process
+        - service: alquimia-evaluator
+          uri: /assistant/response/tool
+      reply:
+        broker: process

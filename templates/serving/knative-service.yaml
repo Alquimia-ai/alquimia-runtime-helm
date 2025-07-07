@@ -1,15 +1,11 @@
-{{- range $key, $service := .Values.services }}
----
+{{- range .Values.serving.services }}
 apiVersion: serving.knative.dev/v1
 kind: Service
 metadata:
-  name: {{ $service.name }}
-  namespace: {{ $.Release.Namespace }}
+  name: {{ .name }}
   labels:
-    {{- if eq $key "leviathan" }}
-    bindings.knative.dev/include: "true"
-    {{- else }}
-    app: entrypoint
+    {{- if .label }}
+    {{- toYaml .label | nindent 4 }}
     {{- end }}
   annotations:
     serving.knative.openshift.io/enablePassthrough: "true"
@@ -22,11 +18,12 @@ spec:
         sidecar.istio.io/rewriteAppHTTPProbers: "true"
     spec:
       containers:
-        - image: {{ $service.image }}
-          name: {{ $service.name }}
+        - name: {{ .name }}
+          image: {{ .image }}
           ports:
             - containerPort: 8080
           envFrom:
             - configMapRef:
-                name: {{ $.Values.configuration.name }}
+                name: alquimia-env
+---
 {{- end }}

@@ -1,0 +1,17 @@
+{{- range .Values.eventing.sinkBindings }}
+apiVersion: sources.knative.dev/v1
+kind: SinkBinding
+metadata:
+  name: {{ .name }}
+spec:
+  subject:
+    apiVersion: serving.knative.dev/v1
+    kind: Service
+    name: {{ .service }}
+  sink:
+    ref:
+      apiVersion: eventing.knative.dev/v1
+      kind: Broker
+      name: {{ .broker }}
+---
+{{- end }}

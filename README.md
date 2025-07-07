@@ -1,118 +1,156 @@
-# **Alquimia Runtime Helm Chart**  
+# **Alquimia Runtime Helm Chart**
 
-This Helm chart deploys the **Alquimia Runtime** application, including its event-driven components using **Knative Eventing** and **Knative Serving**.  
+Este Helm chart despliega la infraestructura base para el runtime de **Alquimia AI** sobre Kubernetes y OpenShift, utilizando tecnologías serverless y event-driven como **Knative Serving** y **Knative Eventing**. Está diseñado para empresas que buscan soluciones de IA escalables, seguras y listas para producción.
 
-## **Prerequisites**
-Istio Mesh
+---
 
-Knative(Serving, Eventing y Kafka)
+## **🚀 Características principales**
+- Despliegue automatizado de microservicios de inferencia, evaluación y herramientas de Alquimia AI.
+- Arquitectura orientada a eventos (Brokers, Triggers, Sequences, SinkBindings).
+- Configuración flexible y personalizable mediante `values.yaml`.
+- Integración avanzada con OpenShift y soporte para Kubernetes estándar (>=1.24).
 
-## **📌 Installation**  
+---
 
-To install the chart with the default values:  
+## **📋 Requisitos previos**
+- Kubernetes >= 1.24
+- Helm 3.x
+- Knative (Serving, Eventing y Kafka)
+- Istio Mesh (recomendado para OpenShift)
 
+---
+
+## **📦 Instalación**
+
+Instalación rápida desde el repositorio oficial:
+```bash
+helm repo add alquimia-ai https://www.alquimia.ai/helm-charts
+helm install alquimia-runtime alquimia-ai/alquimia-runtime-helm --namespace alquimia --create-namespace
+```
+
+Instalación local:
 ```bash
 helm install my-release . --namespace alquimia-runtime
 ```
-To override values:
+
+Sobrescribir valores con archivo personalizado:
 ```bash
 helm install my-release . --namespace alquimia-runtime -f values.override.yaml
 ```
 
-Or using --set:
+O usando `--set`:
 ```bash
 helm install my-release . \
-  --set services.hermes.image="alquimiaai/hermes:latest" \
-  --set services.leviathan.image="alquimiaai/leviathan:latest"
+  --set serving.services[0].image="alquimiaai/leviathan:latest" \
+  --set serving.services[1].image="alquimiaai/hermes:latest"
 ```
 
-## **⚙️ Configurable Parameters**  
+---
 
-The following table lists the configurable parameters of this chart and their default values.
+## **⚙️ Parámetros configurables**
 
-### **1️⃣ Eventing Configuration (`eventing`)**  
+### **1️⃣ Configuración de Eventing (`eventing`)**
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `eventing.brokers` | List of Knative `Broker` resources | See values.yaml |
-| `eventing.configBroker.name` | Name of the ConfigMap for Kafka Broker | `kafka-broker-config` |
-| `eventing.configBroker.namespace` | Namespace where the ConfigMap is located | `knative-eventing` |
-| `eventing.triggers` | List of Knative `Trigger` resources | See values.yaml |
-| `eventing.sequences` | List of Knative `Sequence` resources | See values.yaml |
-| `eventing.sinkBindings` | List of Knative `SinkBinding` resources | See values.yaml |
+| Parámetro | Descripción | Valor por defecto |
+|-----------|-------------|------------------|
+| `eventing.brokers` | Lista de recursos Knative `Broker` | Ver values.yaml |
+| `eventing.triggers` | Lista de recursos Knative `Trigger` | Ver values.yaml |
+| `eventing.sequences` | Lista de recursos Knative `Sequence` | Ver values.yaml |
+| `eventing.sinkBindings` | Lista de recursos Knative `SinkBinding` | Ver values.yaml |
 
-#### **🔹 Example - Custom Broker Configuration**
+#### **🔹 Ejemplo - Configuración personalizada de brokers**
 ```yaml
 eventing:
   brokers:
     - name: inbound
-      serviceRef: alquimia-hermes
-    - name: normalized
-      serviceRef: alquimia-hermes
+      deadLetterUri: /deadletter/inbound
+    - name: process
+      deadLetterUri: /deadletter/process
 ```
 
-### **2️⃣ Service Configuration (`services`)**  
+### **2️⃣ Configuración de Servicios (`serving.services`)**
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `services.hermes.name` | Name of the hermes service	 | `"alquimia-hermes"` |
-| `services.hermes.image` | Image for hermes service	 | `""` |
-| `services.leviathan.name` | Name of the leviathan service | `"alquimia-leviathan"` |
-| `services.leviathan.image` | Image for leviathan service | `""` |
+| Parámetro | Descripción | Valor por defecto |
+|-----------|-------------|------------------|
+| `serving.services` | Lista de microservicios Knative | Ver values.yaml |
+| `serving.services[0].name` | Nombre del servicio | "alquimia-leviathan" |
+| `serving.services[0].image` | Imagen del servicio | "alquimiaai/leviathan:latest" |
+| `serving.services[1].name` | Nombre del servicio | "alquimia-hermes" |
+| `serving.services[1].image` | Imagen del servicio | "alquimiaai/hermes:latest" |
 
-#### **🔹Example - Setting Custom Images**
-
+#### **🔹 Ejemplo - Imágenes personalizadas**
 ```yaml
-services:
-  hermes:
-    image: "alquimiaai/hermes:latest"
-  leviathan:
-    image: "alquimiaai/leviathan:latest"
+serving:
+  services:
+    - name: alquimia-leviathan
+      image: "alquimiaai/leviathan:v2.0.0"
+    - name: alquimia-hermes
+      image: "alquimiaai/hermes:latest"
 ```
 
-### **3️⃣ Configuration Variables (`configuration`)**  
+### **3️⃣ Variables de entorno y configuración (`serving.env`)**
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `configuration.name` | Name of the ConfigMap | `"alquimia-env"` |
-| `configuration.namespace` | Namespace for the ConfigMap | `"alquimia-runtime"` |
+| Clave | Descripción | Valor por defecto |
+|-------|-------------|------------------|
+| `DEBUG` | Modo debug (`true`/`false`) | "False" |
+| `REDIS_HOST` | Host de Redis | "" |
+| `REDIS_PASSWORD` | Contraseña de Redis | "" |
+| `COUCHDB_URL` | URL de CouchDB | "" |
+| `API_TOKEN` | Token de API | "" |
+| ... | ... | ... |
 
-
-#### **🔹Environment Variables**
-| Key | Description | Default |
-|-----------|-------------|---------|
-| `HF_HOME` | Path for Hugging Face storage	| `""` |
-| `QDRANT_API_KEY` | API Key for Qdrant	| `""` |
-| `REDIS_URL` | Redis connection string	| `""` |
-| `ALQUIMIA_S3_ACCESS_KEY_ID` | S3 Access Key | `""` |
-| `GMAIL_USERNAME` | Gmail username for email service | `""` |
-| `GMAIL_PASSWORD` | Gmail password | `""` |
-| `DEBUG` | Debug mode (`true`/`false`)	| `""` |
-
-#### **🔹Example - Custom Environment Variables**
+#### **🔹 Ejemplo - Variables de entorno personalizadas**
 ```yaml
-configuration:
+serving:
   env:
     API_URL: "https://api.alquimia.ai"
     DEBUG: "true"
 ```
 
-## **🛠️ Usage Examples**  
+Puedes ver todos los valores disponibles y sus descripciones en [`values.yaml`](./values.yaml).
 
-### **🚀 Deploy with Custom Images and Configurations**  
+---
+
+## **🛠️ Recursos que despliega**
+
+Este chart crea automáticamente los siguientes recursos de Kubernetes (usando Knative):
+
+- **Brokers** (`eventing.knative.dev/v1`): canales de eventos para orquestar flujos.
+- **Triggers** (`eventing.knative.dev/v1`): reglas para enrutar eventos a servicios.
+- **Sequences** (`flows.knative.dev/v1`): flujos de pasos encadenados para procesamiento avanzado.
+- **SinkBindings** (`sources.knative.dev/v1`): vinculan servicios a brokers de eventos.
+- **ConfigMaps**: para variables de entorno y configuración.
+- **Knative Services** (`serving.knative.dev/v1`): despliegue serverless de los microservicios de Alquimia AI.
+
+---
+
+## **🧩 Ejemplos de uso**
+
+### **🚀 Despliegue con imágenes y configuración personalizada**
 ```bash
 helm install my-alquimia-app . \
-  --set services.hermes.image="alquimiaai/hermes:latest" \
-  --set services.leviathan.image="alquimiaai/leviathan:latest" \
-  --set configuration.env.DEBUG="true"
+  --set serving.services[0].image="alquimiaai/leviathan:latest" \
+  --set serving.services[1].image="alquimiaai/hermes:latest" \
+  --set serving.env.DEBUG="true"
 ```
 
-### **🔄 Upgrade an Existing Deployment**  
+### **🔄 Actualizar un despliegue existente**
 ```bash
 helm upgrade my-alquimia-app . -f values.override.yaml
 ```
 
-### **🗑️ Uninstall**  
+### **🗑️ Desinstalar**
 ```bash
 helm uninstall my-alquimia-app
 ```
+
+---
+
+## **📞 Soporte y contacto**
+- **Sitio web:** [alquimia.ai](https://www.alquimia.ai/)
+- **Soporte:** [https://www.alquimia.ai/](https://www.alquimia.ai/)
+- **Mantenedor:** Jose Luis Cruz (<joseluis.cruz@alquimia.ai>)
+
+---
+
+Este chart es parte del ecosistema de Alquimia AI y está orientado a empresas que buscan desplegar soluciones de IA escalables, seguras y listas para producción sobre Kubernetes y OpenShift. 

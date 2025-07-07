@@ -1,0 +1,36 @@
+{{- range .Values.eventing.sequences }}
+apiVersion: flows.knative.dev/v1
+kind: Sequence
+metadata:
+  name: {{ .name }}
+spec:
+  channelTemplate:
+    apiVersion: messaging.knative.dev/v1
+    kind: Channel
+  steps:
+  {{- range .steps }}
+    - ref:
+        apiVersion: serving.knative.dev/v1
+        kind: Service
+        name: {{ .service }}
+      {{- if .uri }}
+      uri: {{ .uri | quote }}
+      {{- end }}
+  {{- end }}
+  reply:
+    {{- if .reply.broker }}
+    ref:
+      apiVersion: eventing.knative.dev/v1
+      kind: Broker
+      name: {{ .reply.broker }}
+    {{- else if .reply.service }}
+    ref:
+      apiVersion: serving.knative.dev/v1
+      kind: Service
+      name: {{ .reply.service }}
+    {{- if .reply.uri }}
+    uri: {{ .reply.uri | quote }}
+    {{- end }}
+    {{- end }}
+---
+{{- end }}
